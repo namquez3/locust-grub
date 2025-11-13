@@ -14,7 +14,7 @@
 |--------------|----------|-------------------------------------------|----------------------------------|
 | Nico Marquez | namquez | Frontend Dev, UX & Writing | Data Analysis, Experiment Design |
 | [TBD 2]       | [tbd2]  | Backend Dev, API Integration             | DevOps, Database Design          |
-| [TBD 3]       | [tbd3]  | QC & Aggregation Module                  | Statistics, Python               |
+| Benjamin Ham | benjiham  | QC & Aggregation Module                  | Statistics, Python               |
 | Kieran Chetty       | chettyk  | Crowd Recruitment & Analytics            | Survey Design, Visualization     |
 
 ### Team Skills Inventory
@@ -23,7 +23,7 @@
 - Web frontend (React/JS): Nico (namquez), chettyk
 - Basic backend & APIs (Node/Express): [tbd2]
 - UX writing / user research: Nico (namquez)
-- Data analysis & basic statistics: Nico (namquez), [tbd3]
+- Data analysis & basic statistics: Nico (namquez), benjiham
 
 **Skills we need to learn/acquire:**
 - Map APIs (Leaflet/Mapbox): Needed for interactive truck map – [tbd2] will learn it  
@@ -130,7 +130,7 @@ _List all major components with point values (1–4). Target total: 15–20._
 | 2. End-User Map & Detail UI         | React/map interface showing trucks, statuses, and detail pages (menus, hours).             | 4      | Nico    | Component 1 (seed data), basic backend    |
 | 3. Crowd Submission & API Backend    | REST endpoints and DB tables for check-ins, photos, and simple categorical inputs.         | 4      | [tbd2]    | Component 1, DB setup                     |
 | 4. QC Module                         | Filters spammy/low-quality submissions and computes worker reliability / agreement scores. | 4      | [tbd3]    | Component 3 (submissions), sample data    |
-| 5. Aggregation Module                | Combines QC-passed reports into per-truck status, average wait times, confidence scores.   | 3      | [tbd3]    | Components 3 & 4                          |
+| 5. Aggregation Module                | Combines QC-passed reports into per-truck status, average wait times, confidence scores.   | 3      | Benji   | Components 3 & 4                          |
 | 6. Admin Dashboard & Analytics UI    | Simple internal view of trucks, recent submissions, QC results, and aggregated states.     | 3      | Kieran  | Components 3, 4, 5                        |
 
 **Total Points**: 2 + 4 + 4 + 4 + 3 + 3 = **20**
@@ -728,9 +728,9 @@ Assume Weeks 1–4 start immediately after this proposal.
 **Week 2 (Nov 21 – Nov 27)**  
 - Milestone: Crowd submission flow + initial QC prototype.  
 - Tasks:
-  - [ ] Implement check-in form and submission API – [tbd2]  
+  - [ ] Implement check-in form and submission API – Benji 
   - [ ] Implement basic QC filters (distance, rate-limiting) – [tbd3]  
-  - [ ] Implement simple aggregation (unweighted majority) – [tbd3]  
+  - [ ] Implement simple aggregation (unweighted majority) – Benji  
   - [ ] Run small pilot with friends to collect 20–30 submissions – Nico  
 - Deliverable: Users can submit check-ins, and aggregated presence/line length appears on map.
 
@@ -987,7 +987,7 @@ Assume Weeks 1–4 start immediately after this proposal.
 
 - Nico Marquez, 11/13/2025  
 - Kieran Chetty chettyk, 11/13/2025  
-- _________________________ [TBD 3], [Date]  
+- Benjamin Ham, 11/13/2025 
 - _________________________ [TBD 4], [Date]
 
 ---
