@@ -15,19 +15,19 @@
 | Nico Marquez | namquez | Frontend Dev, UX & Writing | Data Analysis, Experiment Design |
 | [TBD 2]       | [tbd2]  | Backend Dev, API Integration             | DevOps, Database Design          |
 | [TBD 3]       | [tbd3]  | QC & Aggregation Module                  | Statistics, Python               |
-| [TBD 4]       | [tbd4]  | Crowd Recruitment & Analytics            | Survey Design, Visualization     |
+| Kieran Chetty       | chettyk  | Crowd Recruitment & Analytics            | Survey Design, Visualization     |
 
 ### Team Skills Inventory
 
 **Skills we have:**
-- Web frontend (React/JS): Nico (namquez), [tbd2]
+- Web frontend (React/JS): Nico (namquez), chettyk
 - Basic backend & APIs (Node/Express): [tbd2]
 - UX writing / user research: Nico (namquez)
 - Data analysis & basic statistics: Nico (namquez), [tbd3]
 
 **Skills we need to learn/acquire:**
 - Map APIs (Leaflet/Mapbox): Needed for interactive truck map – [tbd2] will learn it  
-- Robust QC/aggregation patterns: Needed for combining crowd signals – [tbd3] will learn and prototype in Python  
+- Robust QC/aggregation patterns: Needed for combining crowd signals – chettyk will learn and prototype in Python  
 - Recruitment at scale (beyond class): Needed to reach enough Penn students – Nico will explore channels and messaging patterns
 
 **External resources we might need:**
@@ -48,7 +48,7 @@ _List all time slots when the ENTIRE team can meet with a TA. Eastern Time._
 
 **Preferred meeting duration**: 45 min  
 **Meeting format preference**: Either (in-person or Zoom)  
-**Primary contact for scheduling**: [tbd]
+**Primary contact for scheduling**: group text
 
 ---
 
@@ -131,7 +131,7 @@ _List all major components with point values (1–4). Target total: 15–20._
 | 3. Crowd Submission & API Backend    | REST endpoints and DB tables for check-ins, photos, and simple categorical inputs.         | 4      | [tbd2]    | Component 1, DB setup                     |
 | 4. QC Module                         | Filters spammy/low-quality submissions and computes worker reliability / agreement scores. | 4      | [tbd3]    | Component 3 (submissions), sample data    |
 | 5. Aggregation Module                | Combines QC-passed reports into per-truck status, average wait times, confidence scores.   | 3      | [tbd3]    | Components 3 & 4                          |
-| 6. Admin Dashboard & Analytics UI    | Simple internal view of trucks, recent submissions, QC results, and aggregated states.     | 3      | [tbd4]    | Components 3, 4, 5                        |
+| 6. Admin Dashboard & Analytics UI    | Simple internal view of trucks, recent submissions, QC results, and aggregated states.     | 3      | Kieran  | Components 3, 4, 5                        |
 
 **Total Points**: 2 + 4 + 4 + 4 + 3 + 3 = **20**
 
@@ -986,7 +986,7 @@ Assume Weeks 1–4 start immediately after this proposal.
 **Team signatures**:
 
 - Nico Marquez, 11/13/2025  
-- _________________________ [TBD 2], [Date]  
+- Kieran Chetty chettyk, 11/13/2025  
 - _________________________ [TBD 3], [Date]  
 - _________________________ [TBD 4], [Date]
 
