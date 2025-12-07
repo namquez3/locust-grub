@@ -82,17 +82,10 @@ export async function getCheckins(options?: {
   minutes?: number;
 }): Promise<CheckinRecord[]> {
   const { truckId, minutes } = options ?? {};
-  const filters: ReturnType<typeof sql>[] = [];
-
-  if (truckId) {
-    filters.push(sql`truck_id = ${truckId}`);
-  }
-  if (minutes && minutes > 0) {
-    filters.push(sql`created_at >= ${new Date(Date.now() - minutes * 60 * 1000)}`);
-  }
-
-  const whereClause =
-    filters.length > 0 ? sql`WHERE ${sql.join(filters, sql` AND `)}` : sql``;
+  const since =
+    typeof minutes === "number" && minutes > 0
+      ? new Date(Date.now() - minutes * 60 * 1000)
+      : null;
 
   const rows = await sql<CheckinRow[]>`
     SELECT id,
@@ -105,7 +98,9 @@ export async function getCheckins(options?: {
            worker_id,
            created_at
     FROM checkins
-    ${whereClause}
+    WHERE 1 = 1
+    ${truckId ? sql` AND truck_id = ${truckId}` : sql``}
+    ${since ? sql` AND created_at >= ${since}` : sql``}
     ORDER BY created_at DESC
   `;
 
