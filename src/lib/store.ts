@@ -87,7 +87,7 @@ export async function getCheckins(options?: {
       ? new Date(Date.now() - minutes * 60 * 1000)
       : null;
 
-  const rows = await sql<CheckinRow[]>`
+  const rows = await sql`
     SELECT id,
            truck_id,
            presence,
@@ -108,7 +108,7 @@ export async function getCheckins(options?: {
 }
 
 export async function getRecentCheckins(limit = 50): Promise<CheckinRecord[]> {
-  const rows = await sql<CheckinRow[]>`
+  const rows = await sql`
     SELECT id,
            truck_id,
            presence,
