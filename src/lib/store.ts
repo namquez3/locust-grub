@@ -98,7 +98,7 @@ export async function getCheckins(options?: {
     ? `WHERE ${whereParts.join(" AND ")}`
     : "";
 
-  const rows = await sql.unsafe<CheckinRow[]>(
+  const rows = (await sql.unsafe(
     `SELECT id,
             truck_id,
             presence,
@@ -112,7 +112,7 @@ export async function getCheckins(options?: {
      ${whereClause}
      ORDER BY created_at DESC`,
     values,
-  );
+  )) as CheckinRow[];
 
   return rows.map(mapRowToCheckin);
 }
