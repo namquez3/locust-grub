@@ -1,6 +1,14 @@
+import { promises as fs } from "node:fs";
+import path from "node:path";
 import { randomUUID } from "node:crypto";
-import { neon } from "@neondatabase/serverless";
 
+import {
+  isDatabaseAvailable,
+  getCheckinsFromDb,
+  getRecentCheckinsFromDb,
+  addCheckinRecordToDb,
+  checkWorkerRateLimit,
+} from "@/lib/db";
 import type {
   CheckinInput,
   CheckinRecord,
@@ -8,15 +16,7 @@ import type {
   LineLengthLabel,
 } from "@/lib/types";
 
-function createSqlClient() {
-  const connectionString = process.env.DATABASE_URL;
-  if (!connectionString) {
-    throw new Error("DATABASE_URL is not configured");
-  }
-  return neon(connectionString);
-}
-
-const sql = createSqlClient();
+const DATA_FILE = path.join(process.cwd(), "data", "checkins.json");
 const MAX_WORKER_SUBMISSIONS_PER_WINDOW = 3;
 const WORKER_WINDOW_MINUTES = 10;
 const BAD_WORDS = [
@@ -30,17 +30,34 @@ const BAD_WORDS = [
   "piss",
 ];
 
-type CheckinRow = {
-  id: string;
-  truck_id: string;
-  presence: PresenceLabel;
-  line_length: LineLengthLabel;
-  comment: string | null;
-  rating: number | null;
-  entered_raffle: boolean;
-  worker_id: string;
-  created_at: string;
-};
+async function ensureDataFile() {
+  try {
+    await fs.access(DATA_FILE);
+  } catch {
+    await fs.mkdir(path.dirname(DATA_FILE), { recursive: true });
+    await fs.writeFile(DATA_FILE, "[]", "utf-8");
+  }
+}
+
+async function readAll(): Promise<CheckinRecord[]> {
+  await ensureDataFile();
+  const raw = await fs.readFile(DATA_FILE, "utf-8");
+  if (!raw.trim()) {
+    return [];
+  }
+
+  try {
+    return JSON.parse(raw) as CheckinRecord[];
+  } catch {
+    // If the file somehow gets corrupted, reset it.
+    await fs.writeFile(DATA_FILE, "[]", "utf-8");
+    return [];
+  }
+}
+
+async function writeAll(checkins: CheckinRecord[]) {
+  await fs.writeFile(DATA_FILE, JSON.stringify(checkins, null, 2), "utf-8");
+}
 
 function isValidPresence(value: string): value is PresenceLabel {
   return value === "present" || value === "absent";
@@ -63,67 +80,48 @@ function containsBadLanguage(text: string) {
   return BAD_WORDS.some((word) => normalized.includes(word));
 }
 
-function mapRowToCheckin(row: CheckinRow): CheckinRecord {
-  return {
-    id: row.id,
-    truckId: row.truck_id,
-    presence: row.presence,
-    lineLength: row.line_length,
-    comment: row.comment ?? undefined,
-    rating: row.rating ?? undefined,
-    enteredRaffle: row.entered_raffle,
-    workerId: row.worker_id,
-    createdAt: row.created_at,
-  };
-}
-
 export async function getCheckins(options?: {
   truckId?: string;
   minutes?: number;
 }): Promise<CheckinRecord[]> {
+  // Use database if available, otherwise fall back to file system
+  if (isDatabaseAvailable()) {
+    return getCheckinsFromDb(options);
+  }
+
+  const all = await readAll();
   const { truckId, minutes } = options ?? {};
-  const since =
-    typeof minutes === "number" && minutes > 0
-      ? new Date(Date.now() - minutes * 60 * 1000)
-      : null;
 
-  const rows = (await sql`
-    SELECT id,
-           truck_id,
-           presence,
-           line_length,
-           comment,
-           rating,
-           entered_raffle,
-           worker_id,
-           created_at
-    FROM checkins
-    WHERE 1 = 1
-    ${truckId ? sql` AND truck_id = ${truckId}` : sql``}
-    ${since ? sql` AND created_at >= ${since}` : sql``}
-    ORDER BY created_at DESC
-  `) as unknown as CheckinRow[];
+  return all.filter((item) => {
+    if (truckId && item.truckId !== truckId) {
+      return false;
+    }
 
-  return rows.map(mapRowToCheckin);
+    if (minutes && minutes > 0) {
+      const cutoff = Date.now() - minutes * 60 * 1000;
+      if (new Date(item.createdAt).getTime() < cutoff) {
+        return false;
+      }
+    }
+
+    return true;
+  });
 }
 
 export async function getRecentCheckins(limit = 50): Promise<CheckinRecord[]> {
-  const rows = (await sql`
-    SELECT id,
-           truck_id,
-           presence,
-           line_length,
-           comment,
-           rating,
-           entered_raffle,
-           worker_id,
-           created_at
-    FROM checkins
-    ORDER BY created_at DESC
-    LIMIT ${limit}
-  `) as unknown as CheckinRow[];
+  // Use database if available, otherwise fall back to file system
+  if (isDatabaseAvailable()) {
+    return getRecentCheckinsFromDb(limit);
+  }
 
-  return rows.map(mapRowToCheckin);
+  const all = await readAll();
+  return all
+    .slice()
+    .sort(
+      (a, b) =>
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+    )
+    .slice(0, limit);
 }
 
 export async function addCheckinRecord(
@@ -154,20 +152,28 @@ export async function addCheckinRecord(
   const normalizedWorkerId =
     workerId?.trim() || `anon-${randomUUID().slice(0, 8)}`;
 
-  const windowStart =
-    Date.now() - WORKER_WINDOW_MINUTES * 60 * 1000;
+  // Check rate limit (database or file system)
+  if (isDatabaseAvailable()) {
+    const canSubmit = await checkWorkerRateLimit(
+      normalizedWorkerId,
+      WORKER_WINDOW_MINUTES,
+      MAX_WORKER_SUBMISSIONS_PER_WINDOW,
+    );
+    if (!canSubmit) {
+      throw new Error("Rate limit exceeded for this worker.");
+    }
+  } else {
+    const checkins = await readAll();
+    const windowStart = Date.now() - WORKER_WINDOW_MINUTES * 60 * 1000;
+    const recentForWorker = checkins.filter(
+      (entry) =>
+        entry.workerId === normalizedWorkerId &&
+        new Date(entry.createdAt).getTime() >= windowStart,
+    );
 
-  const countRows = (await sql`
-    SELECT COUNT(*)::int AS count
-    FROM checkins
-    WHERE worker_id = ${normalizedWorkerId}
-      AND created_at >= ${new Date(windowStart)}
-  `) as unknown as { count: string }[];
-
-  const [{ count }] = countRows;
-
-  if (Number(count) >= MAX_WORKER_SUBMISSIONS_PER_WINDOW) {
-    throw new Error("Rate limit exceeded for this worker.");
+    if (recentForWorker.length >= MAX_WORKER_SUBMISSIONS_PER_WINDOW) {
+      throw new Error("Rate limit exceeded for this worker.");
+    }
   }
 
   const record: CheckinRecord = {
@@ -186,41 +192,14 @@ export async function addCheckinRecord(
     throw new Error("Please keep reviews respectful.");
   }
 
-  const insertedRows = (await sql`
-    INSERT INTO checkins (
-      id,
-      truck_id,
-      presence,
-      line_length,
-      comment,
-      rating,
-      entered_raffle,
-      worker_id,
-      created_at
-    )
-    VALUES (
-      ${record.id},
-      ${record.truckId},
-      ${record.presence},
-      ${record.lineLength},
-      ${record.comment ?? null},
-      ${record.rating ?? null},
-      ${record.enteredRaffle},
-      ${record.workerId},
-      ${record.createdAt}
-    )
-    RETURNING id,
-              truck_id,
-              presence,
-              line_length,
-              comment,
-              rating,
-              entered_raffle,
-              worker_id,
-              created_at
-  `) as unknown as CheckinRow[];
+  // Use database if available, otherwise fall back to file system
+  if (isDatabaseAvailable()) {
+    return addCheckinRecordToDb(record);
+  }
 
-  const [inserted] = insertedRows;
+  const checkins = await readAll();
+  checkins.push(record);
+  await writeAll(checkins);
 
-  return mapRowToCheckin(inserted);
+  return record;
 }

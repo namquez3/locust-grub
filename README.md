@@ -148,3 +148,21 @@ I'd say Don’t defend your project.Try and change it. The rubric is a great too
 1. Save as `round4/[your-pennkey].md`
 2. Submit via pull request
 3. Deadline: [Instructor will specify]
+
+---
+
+## Database Setup
+
+The app supports both file-based storage (for local dev) and Prisma Postgres (for production). See `PRISMA_SETUP.md` for detailed setup instructions.
+
+**Quick start:**
+1. Create a Prisma Postgres database in your Vercel project dashboard
+2. Set `DATABASE_URL` environment variable in Vercel
+3. Run `npx prisma db push` to create the tables
+4. Deploy!
+
+## Future stretch goals
+
+- Add worker reliability and gold checks in `src/lib/truck-service.ts`.
+- Layer in a Leaflet/Mapbox map view to complement the list UI.
+- Automate analytics notebooks that read from `/api/admin/submissions`.

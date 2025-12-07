@@ -1,0 +1,28 @@
+// Prisma schema for LocustGrub checkins
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Checkin {
+  id            String   @id @default(uuid())
+  truckId       String   @map("truck_id")
+  presence      String   // 'present' | 'absent'
+  lineLength    String   @map("line_length") // 'none' | 'short' | 'medium' | 'long'
+  comment       String?
+  rating        Int?
+  enteredRaffle Boolean  @default(false) @map("entered_raffle")
+  workerId      String   @map("worker_id")
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  @@index([truckId])
+  @@index([createdAt(sort: Desc)])
+  @@index([workerId])
+  @@index([truckId, createdAt(sort: Desc)])
+  @@map("checkins")
+}
+
