@@ -157,12 +157,14 @@ export async function addCheckinRecord(
   const windowStart =
     Date.now() - WORKER_WINDOW_MINUTES * 60 * 1000;
 
-  const [{ count }] = await sql<{ count: string }[]>`
+  const countRows = (await sql`
     SELECT COUNT(*)::int AS count
     FROM checkins
     WHERE worker_id = ${normalizedWorkerId}
       AND created_at >= ${new Date(windowStart)}
-  `;
+  `) as unknown as { count: string }[];
+
+  const [{ count }] = countRows;
 
   if (Number(count) >= MAX_WORKER_SUBMISSIONS_PER_WINDOW) {
     throw new Error("Rate limit exceeded for this worker.");
