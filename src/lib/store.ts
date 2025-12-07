@@ -108,7 +108,7 @@ export async function getCheckins(options?: {
 }
 
 export async function getRecentCheckins(limit = 50): Promise<CheckinRecord[]> {
-  const rows = await sql`
+  const rows = (await sql`
     SELECT id,
            truck_id,
            presence,
@@ -121,7 +121,7 @@ export async function getRecentCheckins(limit = 50): Promise<CheckinRecord[]> {
     FROM checkins
     ORDER BY created_at DESC
     LIMIT ${limit}
-  `;
+  `) as unknown as CheckinRow[];
 
   return rows.map(mapRowToCheckin);
 }
@@ -184,7 +184,7 @@ export async function addCheckinRecord(
     throw new Error("Please keep reviews respectful.");
   }
 
-  const [inserted] = await sql<CheckinRow[]>`
+  const insertedRows = (await sql`
     INSERT INTO checkins (
       id,
       truck_id,
@@ -216,7 +216,9 @@ export async function addCheckinRecord(
               entered_raffle,
               worker_id,
               created_at
-  `;
+  `) as unknown as CheckinRow[];
+
+  const [inserted] = insertedRows;
 
   return mapRowToCheckin(inserted);
 }
