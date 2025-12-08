@@ -58,7 +58,15 @@ async function buildTopTrucks(): Promise<
         }));
 
       return {
-        ...(status ?? truck),
+        ...(status ?? {
+          ...truck,
+          status: "unknown" as const,
+          statusConfidence: 0,
+          lineLength: "unknown" as const,
+          lineConfidence: 0,
+          submissionsInWindow: 0,
+          freshnessMinutes: null,
+        }),
         avgRating,
         reviewCount: truckReviews.length,
         recentComments,
