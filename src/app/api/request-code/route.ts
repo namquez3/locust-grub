@@ -16,15 +16,6 @@ function getSecretKey() {
   return new TextEncoder().encode(secret);
 }
 
-function getFromAddress() {
-  // Prefer a configured from address; fall back to Resend sandbox default.
-  // If your domain is verified in Resend, set RESEND_FROM to something like
-  // "LocustGrub <no-reply@yourdomain.com>".
-  return (
-    process.env.RESEND_FROM?.trim() || "LocustGrub <onboarding@resend.dev>"
-  );
-}
-
 export async function POST(request: Request) {
   try {
     const { email } = await request.json();
@@ -49,13 +40,32 @@ export async function POST(request: Request) {
       .sign(secretKey);
 
     // send the email
-    const resend = new Resend(process.env.RESEND_API_KEY);
-    await resend.emails.send({
-      from: getFromAddress(),
+    const apiKey = process.env.RESEND_API_KEY;
+    if (!apiKey) {
+      console.error("RESEND_API_KEY is not set");
+      return NextResponse.json(
+        { error: "Email service not configured" },
+        { status: 500 }
+      );
+    }
+
+    const resend = new Resend(apiKey);
+    const from = process.env.RESEND_FROM || "LocustGrub <onboarding@resend.dev>";
+
+    const result = await resend.emails.send({
+      from,
       to: normalized,
       subject: "Your LocustGrub verification code",
       text: `Your LocustGrub verification code is ${code}. It expires in 10 minutes.`,
     });
+
+    if (result.error) {
+      console.error("Resend error:", result.error);
+      return NextResponse.json(
+        { error: "Could not send verification email" },
+        { status: 500 }
+      );
+    }
 
     return NextResponse.json({ ok: true, token });
   } catch (error) {
