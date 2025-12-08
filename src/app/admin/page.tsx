@@ -1,5 +1,6 @@
 import { listRecentCheckins } from "@/lib/truck-service";
 import { trucks } from "@/data/trucks";
+import { AdminContentWrapper } from "@/components/AdminContentWrapper";
 
 const truckLookup = new Map(trucks.map((truck) => [truck.id, truck.name]));
 
@@ -9,8 +10,9 @@ export default async function AdminPage() {
   const submissions = await listRecentCheckins(100);
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      <main className="mx-auto max-w-5xl px-4 py-10 sm:px-6 lg:px-8">
+    <AdminContentWrapper>
+      <div className="min-h-screen bg-slate-50">
+        <main className="mx-auto max-w-5xl px-4 py-10 sm:px-6 lg:px-8">
         <header className="mb-6">
           <p className="text-sm font-semibold uppercase tracking-wide text-slate-500">
             Internal view
@@ -73,8 +75,9 @@ export default async function AdminPage() {
             )}
           </div>
         </div>
-      </main>
-    </div>
+        </main>
+      </div>
+    </AdminContentWrapper>
   );
 }
 

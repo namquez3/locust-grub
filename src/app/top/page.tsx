@@ -2,6 +2,7 @@ import Link from "next/link";
 
 import { getTruckStatuses } from "@/lib/truck-service";
 import { getCheckins } from "@/lib/store";
+import { trucks } from "@/data/trucks";
 import { buildGoogleMapsUrl } from "@/lib/truck-utils";
 
 export const dynamic = "force-dynamic";
@@ -25,8 +26,11 @@ async function buildTopTrucks(): Promise<
     getCheckins({ minutes: 60 * 24 }),
   ]);
 
-  return statuses
+  const statusMap = new Map(statuses.map((truck) => [truck.id, truck]));
+
+  return trucks
     .map((truck) => {
+      const status = statusMap.get(truck.id);
       const truckReviews = checkins.filter(
         (review) => review.truckId === truck.id,
       );
@@ -54,7 +58,15 @@ async function buildTopTrucks(): Promise<
         }));
 
       return {
-        ...truck,
+        ...(status ?? {
+          ...truck,
+          status: "unknown" as const,
+          statusConfidence: 0,
+          lineLength: "unknown" as const,
+          lineConfidence: 0,
+          submissionsInWindow: 0,
+          freshnessMinutes: null,
+        }),
         avgRating,
         reviewCount: truckReviews.length,
         recentComments,

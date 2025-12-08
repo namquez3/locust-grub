@@ -84,7 +84,7 @@ export async function getCheckins(options?: {
   truckId?: string;
   minutes?: number;
 }): Promise<CheckinRecord[]> {
-  // Use database if available, otherwise fall back to file system
+  // Use database if available, otherwise fall back to file storage
   if (isDatabaseAvailable()) {
     return getCheckinsFromDb(options);
   }
@@ -109,7 +109,7 @@ export async function getCheckins(options?: {
 }
 
 export async function getRecentCheckins(limit = 50): Promise<CheckinRecord[]> {
-  // Use database if available, otherwise fall back to file system
+  // Use database if available, otherwise fall back to file storage
   if (isDatabaseAvailable()) {
     return getRecentCheckinsFromDb(limit);
   }
@@ -152,30 +152,6 @@ export async function addCheckinRecord(
   const normalizedWorkerId =
     workerId?.trim() || `anon-${randomUUID().slice(0, 8)}`;
 
-  // Check rate limit (database or file system)
-  if (isDatabaseAvailable()) {
-    const canSubmit = await checkWorkerRateLimit(
-      normalizedWorkerId,
-      WORKER_WINDOW_MINUTES,
-      MAX_WORKER_SUBMISSIONS_PER_WINDOW,
-    );
-    if (!canSubmit) {
-      throw new Error("Rate limit exceeded for this worker.");
-    }
-  } else {
-    const checkins = await readAll();
-    const windowStart = Date.now() - WORKER_WINDOW_MINUTES * 60 * 1000;
-    const recentForWorker = checkins.filter(
-      (entry) =>
-        entry.workerId === normalizedWorkerId &&
-        new Date(entry.createdAt).getTime() >= windowStart,
-    );
-
-    if (recentForWorker.length >= MAX_WORKER_SUBMISSIONS_PER_WINDOW) {
-      throw new Error("Rate limit exceeded for this worker.");
-    }
-  }
-
   const record: CheckinRecord = {
     id: randomUUID(),
     truckId,
@@ -192,12 +168,33 @@ export async function addCheckinRecord(
     throw new Error("Please keep reviews respectful.");
   }
 
-  // Use database if available, otherwise fall back to file system
   if (isDatabaseAvailable()) {
-    return addCheckinRecordToDb(record);
+    const canSubmit = await checkWorkerRateLimit(
+      normalizedWorkerId,
+      WORKER_WINDOW_MINUTES,
+      MAX_WORKER_SUBMISSIONS_PER_WINDOW,
+    );
+
+    if (!canSubmit) {
+      throw new Error("Rate limit exceeded for this worker.");
+    }
+
+    await addCheckinRecordToDb(record);
+    return record;
   }
 
   const checkins = await readAll();
+  const windowStart = Date.now() - WORKER_WINDOW_MINUTES * 60 * 1000;
+  const recentForWorker = checkins.filter(
+    (entry) =>
+      entry.workerId === normalizedWorkerId &&
+      new Date(entry.createdAt).getTime() >= windowStart,
+  );
+
+  if (recentForWorker.length >= MAX_WORKER_SUBMISSIONS_PER_WINDOW) {
+    throw new Error("Rate limit exceeded for this worker.");
+  }
+
   checkins.push(record);
   await writeAll(checkins);
 

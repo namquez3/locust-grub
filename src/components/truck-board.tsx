@@ -1004,37 +1004,96 @@ type EmailVerificationDialogProps = {
   onVerified: (email: string) => void;
 };
 
+const PENN_EMAIL_REGEX = /^[^@]+@([^.]+\.)?upenn\.edu$/;
+
 function EmailVerificationDialog({
   onClose,
   onVerified,
 }: EmailVerificationDialogProps) {
   const [step, setStep] = useState<"email" | "code">("email");
   const [email, setEmail] = useState("");
-  const [codeInput, setCodeInput] = useState("");
-  const [generatedCode, setGeneratedCode] = useState<string | null>(null);
+  const [code, setCode] = useState("");
+  const [token, setToken] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
 
-  const requestCode = () => {
+  const handleSendCode = async () => {
     const normalized = email.trim().toLowerCase();
-    const pennRegex = /^[^@]+@([^.]+\.)?upenn\.edu$/;
-    if (!pennRegex.test(normalized)) {
-      setError("Please use a valid @upenn.edu email.");
+    if (!PENN_EMAIL_REGEX.test(normalized)) {
+      setError("Please use a valid Penn email (upenn.edu).");
       return;
     }
-    const newCode = Math.floor(100000 + Math.random() * 900000).toString();
-    setGeneratedCode(newCode);
-    setStep("code");
+
+    setLoading(true);
     setError(null);
+
+    try {
+      const res = await fetch("/api/request-code", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: normalized }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        setError(data.error || "Could not send code.");
+        return;
+      }
+
+      setToken(data.token);
+      setStep("code");
+    } catch (err) {
+      console.error(err);
+      setError("Something went wrong. Please try again.");
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const verifyCode = () => {
-    if (codeInput.trim() !== generatedCode) {
-      setError("Incorrect code. Check the demo code shown above.");
+  const handleVerifyCode = async () => {
+    if (!token) {
+      setError("Missing verification token. Please resend the code.");
       return;
     }
-    onVerified(email.trim().toLowerCase());
+
+    const normalized = email.trim().toLowerCase();
+    const codeStr = code.trim();
+
+    if (!codeStr) {
+      setError("Please enter the code from your email.");
+      return;
+    }
+
+    setLoading(true);
     setError(null);
-    onClose();
+
+    try {
+      const res = await fetch("/api/verify-code", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: normalized,
+          code: codeStr,
+          token,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        setError(data.error || "Could not verify code.");
+        return;
+      }
+
+      onVerified(normalized);
+      onClose();
+    } catch (err) {
+      console.error(err);
+      setError("Something went wrong verifying your code.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -1046,8 +1105,13 @@ function EmailVerificationDialog({
               Penn verification
             </p>
             <h3 className="text-xl font-semibold text-slate-900">
-              {step === "email" ? "Enter your email" : "Enter the 6-digit code"}
+              {step === "email" ? "Enter your Penn email" : "Enter your code"}
             </h3>
+            <p className="mt-1 text-sm text-slate-500">
+              {step === "email"
+                ? "We will email you a 6 digit verification code at your Penn address."
+                : "Check your inbox for the LocustGrub code and enter it below."}
+            </p>
           </div>
           <button
             type="button"
@@ -1058,64 +1122,68 @@ function EmailVerificationDialog({
           </button>
         </div>
 
-        {step === "email" ? (
-          <div className="mt-4 space-y-3">
+        <div className="mt-4 space-y-3">
+          {step === "email" ? (
             <label className="block text-sm font-medium text-slate-700">
               Penn email
               <input
                 type="email"
                 value={email}
                 onChange={(event) => setEmail(event.target.value)}
-                className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 outline-none focus:border-slate-900"
-                placeholder="name@upenn.edu"
+                className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm shadow-sm focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
+                placeholder="netid@upenn.edu"
               />
             </label>
-            {error && <p className="text-sm text-rose-600">{error}</p>}
+          ) : (
+            <label className="block text-sm font-medium text-slate-700">
+              6 digit code
+              <input
+                type="text"
+                value={code}
+                onChange={(event) => setCode(event.target.value)}
+                className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm shadow-sm focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
+                placeholder="123456"
+              />
+            </label>
+          )}
+
+          {error && (
+            <p className="text-sm text-red-600">
+              {error}
+            </p>
+          )}
+        </div>
+
+        <div className="mt-6 flex justify-end gap-2">
+          {step === "code" && (
             <button
               type="button"
-              onClick={requestCode}
-              className="w-full rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-800"
+              onClick={() => {
+                setStep("email");
+                setCode("");
+                setToken(null);
+                setError(null);
+              }}
+              className="rounded-full border border-slate-200 px-4 py-1.5 text-sm font-medium text-slate-600 hover:border-slate-300 hover:text-slate-900"
             >
-              Send code
+              Back
             </button>
-          </div>
-        ) : (
-          <div className="mt-4 space-y-3">
-            <p className="text-sm text-slate-600">
-              Enter the code we just emailed (demo code:{" "}
-              <span className="font-mono font-semibold">{generatedCode}</span>).
-            </p>
-            <input
-              type="text"
-              value={codeInput}
-              maxLength={6}
-              onChange={(event) => setCodeInput(event.target.value)}
-              className="w-full rounded-lg border border-slate-200 px-3 py-2 text-center text-lg tracking-[0.5em] outline-none focus:border-slate-900"
-              placeholder="123456"
-            />
-            {error && <p className="text-sm text-rose-600">{error}</p>}
-            <div className="flex gap-2">
-              <button
-                type="button"
-                onClick={() => {
-                  setStep("email");
-                  setGeneratedCode(null);
-                  setCodeInput("");
-                }}
-                className="flex-1 rounded-full border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700"
-              >
-                Back
-              </button>
-              <button
-                type="button"
-                onClick={verifyCode}
-                className="flex-1 rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-800"
-              >
-                Verify
-              </button>
-            </div>
-          </div>
-        )}
+          )}
+          <button
+            type="button"
+            onClick={step === "email" ? handleSendCode : handleVerifyCode}
+            disabled={loading}
+            className="rounded-full bg-sky-600 px-4 py-1.5 text-sm font-semibold text-white shadow-sm transition hover:bg-sky-700 disabled:cursor-not-allowed disabled:opacity-70"
+          >
+            {loading
+              ? step === "email"
+                ? "Sending..."
+                : "Verifying..."
+              : step === "email"
+                ? "Send code"
+                : "Verify"}
+          </button>
+        </div>
       </div>
     </div>
   );
