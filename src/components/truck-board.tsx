@@ -345,7 +345,7 @@ export function TruckBoard({ initialTrucks }: TruckBoardProps) {
             <p className="text-sm text-slate-500">
               {verifiedEmail
                 ? "Reset if you need to switch accounts."
-                : "Verify once to unlock check-ins and raffles."}
+                : "Verify once to unlock check-ins."}
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -653,7 +653,6 @@ function CheckinDialog({
   const [presence, setPresence] = useState<PresenceLabel>("present");
   const [lineLength, setLineLength] = useState<LineLengthLabel>("short");
   const [comment, setComment] = useState("");
-  const [rating, setRating] = useState<number>(5);
   const [submitting, setSubmitting] = useState(false);
   const [workerId, setWorkerId] = useState<string | null>(null);
   const [locationStatus, setLocationStatus] = useState<
@@ -664,7 +663,6 @@ function CheckinDialog({
   const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(
     null,
   );
-  const [raffleOptIn, setRaffleOptIn] = useState(true);
 
   useEffect(() => {
     if (verifiedEmail) {
@@ -750,8 +748,6 @@ function CheckinDialog({
           lineLength,
           comment,
           workerId,
-          rating,
-          enteredRaffle: raffleOptIn,
         }),
       });
 
@@ -764,8 +760,6 @@ function CheckinDialog({
 
       onSubmitted();
       setComment("");
-      setRating(5);
-      setRaffleOptIn(true);
     } catch (error) {
       const message =
         error instanceof Error
@@ -878,34 +872,6 @@ function CheckinDialog({
             </div>
           </fieldset>
 
-          <fieldset className="space-y-2">
-            <legend className="text-sm font-medium text-slate-700">
-              Review score
-            </legend>
-            <div className="flex gap-2">
-              {[1, 2, 3, 4, 5].map((value) => (
-                <label
-                  key={value}
-                  className={`flex-1 cursor-pointer rounded-lg border px-3 py-2 text-center text-sm font-medium ${
-                    rating === value
-                      ? "border-amber-500 bg-amber-50 text-amber-700"
-                      : "border-slate-200 text-slate-700"
-                  }`}
-                >
-                  <input
-                    type="radio"
-                    className="hidden"
-                    name="rating"
-                    value={value}
-                    checked={rating === value}
-                    onChange={() => setRating(value)}
-                  />
-                  {value}★
-                </label>
-              ))}
-            </div>
-          </fieldset>
-
           <div className="space-y-2 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <p className="font-medium text-slate-700">Location check</p>
@@ -961,15 +927,6 @@ function CheckinDialog({
               Remote updates need at least 10 characters so we can verify them.
             </p>
           )}
-
-          <label className="flex items-center gap-2 rounded-2xl border border-slate-200 bg-white p-3 text-sm font-medium text-slate-700">
-            <input
-              type="checkbox"
-              checked={raffleOptIn}
-              onChange={(event) => setRaffleOptIn(event.target.checked)}
-            />
-            Enter me in this week&apos;s free meal raffle.
-          </label>
 
           <div className="flex items-center justify-between text-xs text-slate-500">
             <p>

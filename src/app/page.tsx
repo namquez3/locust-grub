@@ -53,12 +53,6 @@ export default async function Home() {
                 Live map
               </Link>
               <Link
-                href="/top"
-                className="rounded-full border border-slate-200/80 px-4 py-1.5 font-semibold text-slate-700 transition hover:border-slate-900 hover:text-slate-900"
-              >
-                Top trucks
-              </Link>
-              <Link
                 href="/leaderboard"
                 className="rounded-full border border-slate-200/80 px-4 py-1.5 font-semibold text-slate-700 transition hover:border-slate-900 hover:text-slate-900"
               >
@@ -187,7 +181,7 @@ export default async function Home() {
             {
               title: "Want to help?",
               body:
-                "Tap any “Check in” button while you're on campus. 20–30 solid submissions unlock the weekly free-meal raffle and keep trucks honest.",
+                "Tap any “Check in” button while you're on campus. 20–30 solid submissions keep trucks honest and power the engagement leaderboard.",
             },
           ].map((card) => (
             <article key={card.title} className="space-y-2">
